@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
-import { apiFetch } from "../api";
+import { apiFetch, API_URL, resolveApiUrl } from "../api";
 import {
   Phone, Video, Pin, UserPlus, Search, HelpCircle,
   Paperclip, Smile, Send, MapPin, Mic, Square, Trash2
@@ -60,6 +60,9 @@ function MessageRow({ message, isOutgoing, senderName, isGroup, currentUserId, c
   };
 
   const isMedia = message.type === "image" || message.type === "video";
+  const attachmentUrl = ["image", "video", "audio", "file"].includes(message.type)
+    ? resolveApiUrl(message.content)
+    : message.content;
 
   return (
     <div className={`message-row ${isOutgoing ? "outgoing" : ""}`}>
@@ -95,16 +98,16 @@ function MessageRow({ message, isOutgoing, senderName, isGroup, currentUserId, c
           ) : message.type === "image" ? (
             <div className="msg-media-container">
               <img
-                src={message.content}
+                src={attachmentUrl}
                 alt="Image attachment"
                 className="msg-media-image"
-                onClick={() => window.open(message.content, "_blank")}
+                onClick={() => window.open(attachmentUrl, "_blank")}
               />
             </div>
           ) : message.type === "video" ? (
             <div className="msg-media-container">
               <video
-                src={message.content}
+                src={attachmentUrl}
                 controls
                 className="msg-media-video"
               />
@@ -112,7 +115,7 @@ function MessageRow({ message, isOutgoing, senderName, isGroup, currentUserId, c
           ) : message.type === "audio" ? (
             <div className="msg-media-container" style={{ minWidth: "220px", padding: "4px 0" }}>
               <audio
-                src={message.content}
+                src={attachmentUrl}
                 controls
                 className="msg-media-audio"
               />
@@ -121,7 +124,7 @@ function MessageRow({ message, isOutgoing, senderName, isGroup, currentUserId, c
             <div className="msg-file-container">
               <Paperclip size={16} style={{ flexShrink: 0 }} />
               <a
-                href={message.content}
+                href={attachmentUrl}
                 download
                 target="_blank"
                 rel="noreferrer"
@@ -376,7 +379,7 @@ export default function ChatView({ activeChat, users = [], onOpenMap }) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/upload", {
+      const res = await fetch(`${API_URL}/api/upload`, {
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

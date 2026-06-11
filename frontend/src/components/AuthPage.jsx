@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { apiFetch } from "../api";
 import { Mail, Lock, User, LogIn, UserPlus } from "lucide-react";
 import { auth } from "../firebase";
 
@@ -41,40 +42,32 @@ export default function AuthPage() {
   };
 
   const handleGoogleLogin = async () => {
+    setError("");
+    setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
 
-      const result = await signInWithPopup(
-        auth,
-        provider
-      );
-      console.log("GOOGLE LOGIN SUCCESS");
-      console.log(result.user);
-      console.log("EMAIL:", result.user.email);
-      console.log("NAME:", result.user?.displayName);
-      console.log("UID:", result.user.uid);
-      const response = await fetch("/api/auth/google", {
+      if (!result.user.email) {
+        throw new Error("Your Google account did not provide an email address.");
+      }
+
+      const data = await apiFetch("/api/auth/google", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           email: result.user.email,
-          name: result.user?.displayName,
+          name: result.user.displayName,
           uid: result.user.uid,
           photoURL: result.user.photoURL,
         }),
       });
 
-      const data = await response.json();
-
-      console.log("BACKEND RESPONSE:", data);
       saveAuth(data.token, data.user);
-
-
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(err.message || "Google sign-in failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,6 +118,7 @@ export default function AuthPage() {
             </button>
             <button
               type="button"
+              disabled={loading}
               onClick={handleGoogleLogin}
               style={{
                 width: "100%",

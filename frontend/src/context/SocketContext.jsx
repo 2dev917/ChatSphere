@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
+import { getApiBaseUrl } from "../api";
 
 const SocketContext = createContext(null);
 
@@ -20,7 +21,7 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    const s = io(import.meta.env.DEV ? "http://localhost:5000" : undefined, {
+    const s = io(getApiBaseUrl() || undefined, {
       auth: { token }
     });
 

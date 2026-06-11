@@ -1,0 +1,23 @@
+# Deploy the backend on Render: https://render.com
+# 1. Connect this GitHub repo in Render
+# 2. Render will detect this file and create the web service
+# 3. Set MONGODB_URI, JWT_SECRET, and GOOGLE_MAPS_API_KEY in the Render dashboard
+services:
+  - type: web
+    name: chatsphere-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://chat-sphere.vercel.app
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false

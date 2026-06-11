@@ -16,10 +16,25 @@ const db = require("./db");
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = (process.env.CLIENT_URL || "*")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.CLIENT_URL || "*",
+  origin:
+    allowedOrigins.length === 1 && allowedOrigins[0] === "*"
+      ? true
+      : (origin, callback) => {
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+          } else {
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+          }
+        },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 };
 
 app.use(cors(corsOptions));
@@ -46,6 +61,10 @@ function authenticateToken(req, res, next) {
     next();
   });
 }
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, service: "chatsphere-api" });
+});
 
 app.get("/api/config", (req, res) => {
   res.json({ googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "" });
@@ -117,35 +136,29 @@ app.post("/api/auth/google", async (req, res) => {
   try {
     const { email, name, photoURL } = req.body;
 
+    if (!email) {
+      return res.status(400).json({ error: "Google account email is required" });
+    }
+
     let user = await db.getUserByEmail(email);
 
     if (!user) {
+      const username = (name || email.split("@")[0] || "user").trim();
       user = await db.createUser({
-        username: name,
+        username,
         email,
         passwordHash: null,
-        avatar: photoURL
+        avatar: photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(username)}`
       });
-
-      console.log("NEW GOOGLE USER CREATED");
-    } else {
-      console.log("EXISTING GOOGLE USER");
     }
 
     const token = jwt.sign(
-      {
-        id: user.id,
-        username: user.username
-      },
+      { id: user.id, username: user.username },
       JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    res.json({
-      token,
-      user
-    });
-
+    res.json({ token, user });
   } catch (error) {
     console.error("Google login error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -437,13 +450,15 @@ io.on("connection", (socket) => {
 
 const frontendDist = path.join(__dirname, "../frontend/dist");
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(express.static(frontendDist));
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api") || req.path.startsWith("/socket.io") || req.path.startsWith("/uploads")) return next();
-  res.sendFile(path.join(frontendDist, "index.html"), (err) => {
-    if (err) next();
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/socket.io") || req.path.startsWith("/uploads")) return next();
+    res.sendFile(path.join(frontendDist, "index.html"), (err) => {
+      if (err) next();
+    });
   });
-});
+}
 
 async function start() {
   try {
@@ -456,8 +471,8 @@ async function start() {
       throw err;
     });
 
-    server.listen(PORT, () => {
-      console.log(`ChatSphere API running at http://localhost:${PORT}`);
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`ChatSphere API running on port ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error.message);

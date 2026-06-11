@@ -3,6 +3,9 @@
   "version": "2.0.0",
   "description": "ChatSphere API - Express, Socket.IO, MongoDB",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
@@ -13,7 +16,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mongodb-memory-server": "^11.2.0",
     "mongoose": "^8.9.5",
     "multer": "^2.1.1",
     "socket.io": "^4.7.5"
