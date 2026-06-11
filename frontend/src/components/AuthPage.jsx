@@ -51,7 +51,7 @@ export default function AuthPage() {
       console.log("GOOGLE LOGIN SUCCESS");
       console.log(result.user);
       console.log("EMAIL:", result.user.email);
-      console.log("NAME:", result.user.displayName);
+      console.log("NAME:", result.user?.displayName);
       console.log("UID:", result.user.uid);
       const response = await fetch("/api/auth/google", {
         method: "POST",
@@ -60,7 +60,7 @@ export default function AuthPage() {
         },
         body: JSON.stringify({
           email: result.user.email,
-          name: result.user.displayName,
+          name: result.user?.displayName,
           uid: result.user.uid,
           photoURL: result.user.photoURL,
         }),

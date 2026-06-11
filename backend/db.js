@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const { MongoMemoryServer } = require("mongodb-memory-server");
 const User = require("./models/User");
 const Message = require("./models/Message");
 const Group = require("./models/Group");
@@ -9,22 +8,18 @@ const Location = require("./models/Location");
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/chatsphere";
 
 async function connectDB() {
-  let uri = MONGODB_URI;
+  const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/chatsphere";
 
   try {
     await mongoose.connect(uri, { serverSelectionTimeoutMS: 4000 });
     console.log("MongoDB connected:", uri);
   } catch (err) {
-    console.warn("Local MongoDB unavailable — using in-memory database.");
-    const memoryServer = await MongoMemoryServer.create();
-    uri = memoryServer.getUri("chatsphere");
-    await mongoose.connect(uri);
-    console.log("In-memory MongoDB ready (data resets on restart).");
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
   }
 
   await seedDatabase();
 }
-
 async function seedDatabase() {
   const userCount = await User.countDocuments();
   if (userCount > 0) return;

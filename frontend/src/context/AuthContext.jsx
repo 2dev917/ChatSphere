@@ -136,6 +136,7 @@ export function AuthProvider({ children }) {
       method: "POST",
       body: JSON.stringify({ email, password })
     });
+    console.log("LOGIN RESPONSE:", data);
     saveAuth(data.token, data.user);
     return data;
   };
